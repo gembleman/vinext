@@ -17,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { execFileSync, execSync, type ExecSyncOptions } from "node:child_process";
+import { execFileSync, execSync, spawnSync, type ExecSyncOptions } from "node:child_process";
 import { parseArgs as nodeParseArgs } from "node:util";
 import { createBuilder, build } from "vite";
 import {
@@ -741,13 +741,7 @@ export function buildWranglerDeployArgs(options: Pick<DeployOptions, "preview" |
 }
 
 function runWranglerDeploy(root: string, options: Pick<DeployOptions, "preview" | "env">): string {
-  const wranglerBin = path.join(root, "node_modules", ".bin", "wrangler");
-
-  const execOpts: ExecSyncOptions = {
-    cwd: root,
-    stdio: "pipe",
-    encoding: "utf-8",
-  };
+  const wranglerJs = path.join(root, "node_modules", "wrangler", "bin", "wrangler.js");
 
   const { args, env } = buildWranglerDeployArgs(options);
 
@@ -757,9 +751,16 @@ function runWranglerDeploy(root: string, options: Pick<DeployOptions, "preview" 
     console.log("\n  Deploying to production...");
   }
 
-  // Use execFileSync to avoid shell injection — args are passed as an array,
-  // never interpolated into a shell command string.
-  const output = execFileSync(wranglerBin, args, execOpts) as string;
+  // Run wrangler's JS entry directly via node to avoid platform-specific
+  // shell wrapper issues (.cmd on Windows, shebang scripts on Unix).
+  const result = spawnSync(process.execPath, [wranglerJs, ...args], {
+    cwd: root,
+    encoding: "utf-8",
+  });
+
+  if (result.error) throw result.error;
+
+  const output = (result.stdout ?? "") + (result.stderr ?? "");
 
   // Parse the deployed URL from wrangler output
   // Wrangler prints: "Published <name> (version_id)\n  https://<name>.<subdomain>.workers.dev"
