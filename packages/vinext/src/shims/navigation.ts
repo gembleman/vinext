@@ -225,6 +225,19 @@ function getSearchParamsSnapshot(): URLSearchParams {
   return _cachedSearchParams;
 }
 
+// Cached fallback for getServerSnapshot — must be referentially stable to
+// avoid infinite re-renders (useSyncExternalStore compares with Object.is).
+let _cachedServerSearchParams: URLSearchParams | null = null;
+
+function getServerSearchParamsSnapshot(): URLSearchParams {
+  const ctx = _getServerContext();
+  if (ctx?.searchParams != null) return ctx.searchParams;
+  if (_cachedServerSearchParams === null) {
+    _cachedServerSearchParams = new URLSearchParams();
+  }
+  return _cachedServerSearchParams;
+}
+
 // Same for pathname — cache the string for referential stability
 let _cachedPathname = !isServer ? stripBasePath(window.location.pathname) : "/";
 
@@ -289,7 +302,7 @@ export function useSearchParams(): URLSearchParams {
    return React.useSyncExternalStore(
     (cb: () => void) => { _listeners.add(cb); return () => { _listeners.delete(cb); }; },
     getSearchParamsSnapshot,
-    () => _getServerContext()?.searchParams ?? new URLSearchParams(),
+    getServerSearchParamsSnapshot,
   );
 }
 
