@@ -17,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { execFileSync, execSync, spawnSync, type ExecSyncOptions } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { parseArgs as nodeParseArgs } from "node:util";
 import { createBuilder, build } from "vite";
 import {
