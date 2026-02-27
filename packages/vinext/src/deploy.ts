@@ -760,7 +760,11 @@ function runWranglerDeploy(root: string, options: Pick<DeployOptions, "preview" 
 
   if (result.error) throw result.error;
 
-  const output = (result.stdout ?? "") + (result.stderr ?? "");
+  if (result.status !== 0) {
+    throw new Error(`wrangler deploy failed (exit code ${result.status}):\n${result.stderr}`);
+  }
+
+  const output = result.stdout ?? "";
 
   // Parse the deployed URL from wrangler output
   // Wrangler prints: "Published <name> (version_id)\n  https://<name>.<subdomain>.workers.dev"
